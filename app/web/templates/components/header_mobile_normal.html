@@ -1,0 +1,26 @@
+<div class="header-mobile-normal" id="header-content">
+    <div class="left-group">
+        <button type="button" class="badge-mobile categories">
+            <img src="/static/img/categories.svg" alt="Categorías" width="20" height="20" />
+        </button>
+        <a class="logo-mobile" href="/" aria-label="Inicio">
+            <img src="/static/img/logo.svg" alt="Logo" width="50" height="40" />
+        </a>
+    </div>
+    <div class="right-group">
+        <button type="button" class="icon-btn-mobile search-btn" 
+                hx-get="/api/v1/header/search-mode"
+                hx-target="#header-content"
+                hx-swap="outerHTML"
+                aria-label="Buscar">
+            <img src="/static/img/search.svg" alt="Buscar" width="20" height="20" />
+        </button>
+        <a href="/account" class="icon-btn-mobile account" aria-label="Cuenta">
+            <img src="/static/img/user.svg" alt="Usuario" width="20" height="20" />
+        </a>
+        <a href="/cart" class="icon-btn-mobile cart" aria-label="Carrito">
+            <img src="/static/img/cart.svg" alt="Carrito" width="30" height="30" />
+            <span class="count">{{ cart_count|default(0) }}</span>
+        </a>
+    </div>
+</div>

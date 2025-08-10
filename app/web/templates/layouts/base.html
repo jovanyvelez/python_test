@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <title>Micro Tienda</title>
+</head>
+<body>
+    <header id="main-header">
+        <!-- Header content will be loaded based on device type -->
+        <div id="header-content" 
+             hx-get="/api/v1/header/normal-mode" 
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <!-- Fallback content while loading -->
+            <div style="display: flex; justify-content: center; align-items: center; height: 6rem; color: white;">
+                Cargando...
+            </div>
+        </div>
+    </header>
+    
+    <!-- Device detection script for HTMX headers -->
+    <script>
+        // Add device info to all HTMX requests
+        document.body.addEventListener('htmx:configRequest', function(evt) {
+            const screenWidth = window.innerWidth;
+            const deviceType = screenWidth < 576 ? 'mobile' : screenWidth < 768 ? 'tablet' : 'desktop';
+            
+            evt.detail.headers['X-Screen-Width'] = screenWidth.toString();
+            evt.detail.headers['X-Device-Type'] = deviceType;
+        });
+        
+        // Auto-refresh header on significant resize
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                const newWidth = window.innerWidth;
+                const currentDeviceType = newWidth < 576 ? 'mobile' : newWidth < 768 ? 'tablet' : 'desktop';
+                
+                // Refresh header if device type changed
+                const headerContent = document.getElementById('header-content');
+                if (headerContent) {
+                    htmx.ajax('GET', '/api/v1/header/normal-mode', {target: '#header-content'});
+                }
+            }, 250);
+        });
+    </script>
+    
+    {% block content %}
+    {% endblock %}
+</body>
+</html>
