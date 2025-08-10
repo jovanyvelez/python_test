@@ -8,50 +8,51 @@
     <title>Micro Tienda</title>
 </head>
 <body>
-    <header id="main-header">
-        <!-- Header content will be loaded based on device type -->
-        <div id="header-content" 
-             hx-get="/api/v1/header/normal-mode" 
-             hx-trigger="load"
-             hx-swap="innerHTML">
-            <!-- Fallback content while loading -->
-            <div style="display: flex; justify-content: center; align-items: center; height: 6rem; color: white;">
-                Cargando...
+    <header class="main-header">
+        <!-- Sección Izquierda: Categorías y Logo -->
+        <div class="header-left">
+            <button class="categories-btn" aria-label="Categorías">
+                <img src="/static/img/categories.svg" alt="Categorías" width="20" height="20" />
+                <span class="categories-text">Categorías</span>
+            </button>
+            <a href="/" class="logo">
+                <img src="/static/img/logo.svg" alt="Micro Tienda" />
+            </a>
+        </div>
+        
+        <!-- Sección Centro: Búsqueda (Desktop) -->
+        <div class="header-center">
+            <div class="search-bar" role="search">
+                <img class="search-icon" src="/static/img/search.svg" alt="Buscar" width="18" height="18" />
+                <input type="search" name="q" placeholder="Busca tu producto..." aria-label="Buscar"
+                       hx-get="/api/v1/search-suggestions"
+                       hx-trigger="input changed delay:300ms"
+                       hx-target="#search-results"
+                       autocomplete="off" />
             </div>
+            <div id="search-results" class="search-results"></div>
+        </div>
+        
+        <!-- Sección Derecha: Búsqueda (Mobile), Usuario y Carrito -->
+        <div class="header-right">
+            <button class="search-btn mobile-only" aria-label="Buscar"
+                    hx-get="/api/v1/mobile-search"
+                    hx-target="#mobile-search-container"
+                    hx-swap="innerHTML">
+                <img src="/static/img/search.svg" alt="Buscar" width="20" height="20" />
+            </button>
+            <button class="user-btn" aria-label="Usuario">
+                <img src="/static/img/user.svg" alt="Usuario" width="20" height="20" />
+            </button>
+            <button class="cart-btn" aria-label="Carrito">
+                <img src="/static/img/cart.svg" alt="Carrito" width="20" height="20" />
+                <span class="cart-count">0</span>
+            </button>
         </div>
     </header>
     
-    <!-- Device detection script for HTMX headers -->
-    <script>
-        // Add device info to all HTMX requests
-        document.body.addEventListener('htmx:configRequest', function(evt) {
-            const screenWidth = window.innerWidth;
-            const deviceType = screenWidth < 576 ? 'mobile' : screenWidth < 768 ? 'tablet' : 'desktop';
-            
-            evt.detail.headers['X-Screen-Width'] = screenWidth.toString();
-            evt.detail.headers['X-Device-Type'] = deviceType;
-        });
-        
-        // Auto-refresh header on significant resize
-        let resizeTimer;
-        window.addEventListener('resize', function() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
-                const newWidth = window.innerWidth;
-                const currentDeviceType = newWidth < 576 ? 'mobile' : newWidth < 768 ? 'tablet' : 'desktop';
-                
-                // Don't refresh header if we're in mobile search mode
-                const mobileSearchInput = document.getElementById('mobile-search-input');
-                const isInMobileSearchMode = mobileSearchInput && document.activeElement === mobileSearchInput;
-                
-                // Refresh header if device type changed and we're not in mobile search mode
-                const headerContent = document.getElementById('header-content');
-                if (headerContent && !isInMobileSearchMode) {
-                    htmx.ajax('GET', '/api/v1/header/normal-mode', {target: '#header-content'});
-                }
-            }, 250);
-        });
-    </script>
+    <!-- Contenedor para búsqueda móvil -->
+    <div id="mobile-search-container"></div>
     
     {% block content %}
     {% endblock %}

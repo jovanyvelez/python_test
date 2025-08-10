@@ -11,86 +11,66 @@ app.mount("/static", StaticFiles(directory="src/web/static"), name="static")
 templates = Jinja2Templates(directory="src/web/templates")
 
 
-def get_device_info(request: Request):
-    """Extract device information from request headers."""
-    screen_width = int(request.headers.get("x-screen-width", "1024"))
-    device_type = request.headers.get("x-device-type", "")
-    user_agent = request.headers.get("user-agent", "").lower()
-    
-    # Fallback detection if headers not present
-    if not device_type:
-        is_mobile_ua = any(device in user_agent for device in ["mobile", "android", "iphone", "ipod"])
-        device_type = "mobile" if (screen_width < 576 or is_mobile_ua) else "desktop"
-    
-    return {
-        "type": device_type,
-        "width": screen_width,
-        "is_mobile": device_type == "mobile" or screen_width < 576,
-        "is_tablet": 576 <= screen_width < 768,
-        "is_desktop": screen_width >= 768
-    }
-
-
-def render_mobile_header_normal(cart_count=0):
-    """Render mobile normal header layout."""
-    return templates.get_template("components/header_mobile_normal.html").render(
-        cart_count=cart_count
-    )
-
-
-def render_desktop_header_normal(cart_count=0):
-    """Render desktop normal header layout."""
-    return templates.get_template("components/header_desktop_normal.html").render(
-        cart_count=cart_count
-    )
-
-
-def render_mobile_header_search():
-    """Render mobile search header layout."""
-    return templates.get_template("components/header_mobile_search.html").render()
-
-
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Landing page rendering the Jinja2 template."""
-    device = get_device_info(request)
     return templates.TemplateResponse("pages/index.html", {
-        "request": request, 
-        "device": device
+        "request": request
     })
 
 
-@app.get("/api/v1/header/normal-mode", response_class=HTMLResponse)
-async def header_normal_mode(request: Request):
-    """Return appropriate normal header based on device."""
-    device = get_device_info(request)
-    
-    # TODO: Get actual cart count from session/database
-    cart_count = 0
-    
-    if device["is_mobile"]:
-        html_content = render_mobile_header_normal(cart_count)
-    else:
-        html_content = render_desktop_header_normal(cart_count)
-    
-    return HTMLResponse(html_content)
+@app.get("/api/v1/mobile-search", response_class=HTMLResponse)
+async def mobile_search(request: Request):
+    """Return mobile search overlay."""
+    return templates.TemplateResponse("components/mobile_search.html", {
+        "request": request
+    })
 
 
-@app.get("/api/v1/header/search-mode", response_class=HTMLResponse)
-async def header_search_mode(request: Request):
-    """Return appropriate search header based on device."""
-    device = get_device_info(request)
+@app.get("/api/v1/close-mobile-search", response_class=HTMLResponse)
+async def close_mobile_search():
+    """Close mobile search overlay."""
+    return HTMLResponse("")
+
+
+@app.get("/api/v1/search-suggestions", response_class=HTMLResponse)
+async def search_suggestions(request: Request, q: str = ""):
+    """Return search suggestions."""
+    q = (q or "").strip().lower()
     
-    if device["is_mobile"]:
-        html_content = render_mobile_header_search()
-        return HTMLResponse(html_content)
-    else:
-        # Desktop keeps normal view with integrated search
-        cart_count = 0  # TODO: Get actual cart count
-        html_content = render_desktop_header_normal(cart_count)
-        return HTMLResponse(html_content)
-
-
+    if not q:
+        return HTMLResponse("")
+    
+    items = [
+        ("Camiseta básica", "/products/1"),
+        ("Zapatillas running", "/products/2"),
+        ("Auriculares inalámbricos", "/products/3"),
+        ("Silla ergonómica", "/products/4"),
+        ("Cafetera automática", "/products/5"),
+        ("Laptop gaming", "/products/6"),
+        ("Mouse inalámbrico", "/products/7"),
+        ("Teclado mecánico", "/products/8"),
+    ]
+    
+    matches = [item for item in items if q in item[0].lower()]
+    if not matches:
+        return HTMLResponse("""
+            <div style="display: flex; justify-content: center; padding: 1rem; color: #666;">
+                Sin resultados
+            </div>
+        """)
+    
+    suggestions_html = ""
+    max_results = 6
+    
+    for name, href in matches[:max_results]:
+        suggestions_html += f"""
+            <a href="{href}">
+                <img src="/static/img/search.svg" alt="" width="16" height="16" />
+                <span>{name}</span>
+            </a>
+        """
+    
 @app.get("/api/v1/products/featured", response_class=HTMLResponse)
 async def products_featured():
     """Return an HTML fragment with featured product cards (HTMX target)."""
@@ -120,50 +100,6 @@ async def add_to_cart(product_id: int = Form(...)):
     # TODO: Implement real cart persistence/session handling
     headers = {"HX-Trigger": "cart:add"}
     return Response(status_code=204, headers=headers)
-
-
-@app.get("/api/v1/search-suggestions", response_class=HTMLResponse)
-async def search_suggestions(request: Request, q: str = ""):
-    """Return search suggestions optimized for device."""
-    device = get_device_info(request)
-    q = (q or "").strip().lower()
-    
-    if not q:
-        return HTMLResponse("")
-    
-    items = [
-        ("Camiseta básica", "/products/1"),
-        ("Zapatillas running", "/products/2"),
-        ("Auriculares inalámbricos", "/products/3"),
-        ("Silla ergonómica", "/products/4"),
-        ("Cafetera automática", "/products/5"),
-        ("Laptop gaming", "/products/6"),
-        ("Mouse inalámbrico", "/products/7"),
-        ("Teclado mecánico", "/products/8"),
-    ]
-    
-    matches = [item for item in items if q in item[0].lower()]
-    if not matches:
-        no_results_class = "suggestion-mobile no-results" if device["is_mobile"] else "suggestion-desktop no-results"
-        return HTMLResponse(f"""
-            <div class="{no_results_class}">
-                <span style="color: #ccc;">Sin resultados</span>
-            </div>
-        """)
-    
-    suggestions_html = ""
-    suggestion_class = "suggestion-mobile" if device["is_mobile"] else "suggestion-desktop"
-    max_results = 4 if device["is_mobile"] else 6
-    
-    for name, href in matches[:max_results]:
-        suggestions_html += f"""
-            <a href="{href}" class="{suggestion_class}">
-                <img src="/static/img/search.svg" alt="" width="16" height="16" />
-                <span>{name}</span>
-            </a>
-        """
-    
-    return HTMLResponse(suggestions_html)
 
 
 # Optional local entry point; prefer `uv run fastapi dev` in development
