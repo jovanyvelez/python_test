@@ -40,9 +40,13 @@
                 const newWidth = window.innerWidth;
                 const currentDeviceType = newWidth < 576 ? 'mobile' : newWidth < 768 ? 'tablet' : 'desktop';
                 
-                // Refresh header if device type changed
+                // Don't refresh header if we're in mobile search mode
+                const mobileSearchInput = document.getElementById('mobile-search-input');
+                const isInMobileSearchMode = mobileSearchInput && document.activeElement === mobileSearchInput;
+                
+                // Refresh header if device type changed and we're not in mobile search mode
                 const headerContent = document.getElementById('header-content');
-                if (headerContent) {
+                if (headerContent && !isInMobileSearchMode) {
                     htmx.ajax('GET', '/api/v1/header/normal-mode', {target: '#header-content'});
                 }
             }, 250);

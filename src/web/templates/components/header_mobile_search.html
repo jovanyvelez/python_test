@@ -12,8 +12,33 @@
                hx-get="/api/v1/search-suggestions"
                hx-trigger="input changed delay:300ms"
                hx-target="#search-results-mobile"
-               autocomplete="off" 
-               hx-on:htmx:afterRequest="this.focus()" />
+               autocomplete="off"
+               id="mobile-search-input" />
     </div>
     <div id="search-results-mobile" class="search-results-mobile"></div>
+    
+    <script>
+        // Auto-focus después de que el elemento esté completamente cargado
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('mobile-search-input');
+            if (searchInput) {
+                // Pequeño delay para asegurar que todo esté renderizado
+                setTimeout(function() {
+                    searchInput.focus();
+                }, 100);
+            }
+        });
+        
+        // Si se carga via HTMX, también hacer focus
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.detail.target.id === 'header-content') {
+                const searchInput = document.getElementById('mobile-search-input');
+                if (searchInput) {
+                    setTimeout(function() {
+                        searchInput.focus();
+                    }, 100);
+                }
+            }
+        });
+    </script>
 </div>
